@@ -1,0 +1,4 @@
+npx -y create-next-app@latest --help
+npx -y create-next-app@latest ./ --js --eslint --app --src-dir --use-npm --disable-git --yes
+npx -y create-next-app@latest instagram-unfollow --js --eslint --app --src-dir --use-npm --disable-git --yes
+npm run build

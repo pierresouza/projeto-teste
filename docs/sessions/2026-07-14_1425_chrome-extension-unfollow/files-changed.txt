@@ -1,0 +1,7 @@
+docs/business-context-lite.md
+docs/technical-context-lite.md
+instagram-unfollow-extension/manifest.json
+instagram-unfollow-extension/background.js
+instagram-unfollow-extension/index.html
+instagram-unfollow-extension/style.css
+instagram-unfollow-extension/app.js

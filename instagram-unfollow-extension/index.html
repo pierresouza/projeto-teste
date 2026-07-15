@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instagram Session Detector</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <section class="upload-container" style="max-width: 480px; margin: 80px auto; text-align: center;">
+    <h1 class="upload-title">Instagram Session</h1>
+    <p class="upload-subtitle" style="margin-bottom: 24px;">Verificação de autenticação ativa</p>
+
+    <!-- Verificando -->
+    <div id="session-checking" class="auto-extract-box" style="background: var(--bg-glass);">
+      <div class="auto-extract-title" style="color: var(--text-muted);">Verificando conexão...</div>
+      <p class="auto-extract-desc">Consultando a sessão ativa no navegador Chrome...</p>
+    </div>
+
+    <!-- Sessão Ativa -->
+    <div id="session-active" class="auto-extract-box" style="display: none; background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
+      <h2 class="auto-extract-title" style="color: #10B981; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Sessão Conectada!
+      </h2>
+      <p class="auto-extract-desc" style="margin-top: 12px;">
+        Identificamos que você está autenticado com sucesso no **Instagram Web**.
+      </p>
+      <div id="user-details" style="font-family: monospace; font-size: 0.9rem; color: var(--text-muted); background: var(--bg-glass); padding: 8px 12px; border-radius: var(--radius-sm); margin-top: 16px; word-break: break-all;">
+        ID de Usuário: ...
+      </div>
+      <a href="https://www.instagram.com" target="_blank" class="action-btn-main" style="display: inline-block; width: auto; padding: 12px 24px; font-size: 0.95rem; margin-top: 20px;">Ir para o Instagram</a>
+    </div>
+
+    <!-- Sessão Ausente -->
+    <div id="session-inactive" class="auto-extract-box" style="display: none; background: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.2);">
+      <h2 class="auto-extract-title" style="color: #EF4444; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        Sessão Desconectada
+      </h2>
+      <p class="auto-extract-desc" style="margin-top: 12px;">
+        Não identificamos nenhuma sessão ativa do Instagram neste navegador.
+      </p>
+      <a href="https://www.instagram.com" target="_blank" class="action-btn-main" style="display: inline-block; width: auto; padding: 12px 24px; font-size: 0.95rem; background: linear-gradient(135deg, #EF4444, #DC2626); box-shadow: 0 4px 14px rgba(239, 68, 68, 0.2); margin-top: 20px;">Fazer Login</a>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>

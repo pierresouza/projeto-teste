@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Instagram Unfollow Manager",
+  "version": "1.0.0",
+  "description": "Gerencie de forma segura e 100% offline quem você segue no Instagram. Descubra quem não segue de volta.",
+  "permissions": [
+    "cookies",
+    "tabs",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://*.instagram.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Abrir Instagram Unfollow Manager"
+  }
+}
