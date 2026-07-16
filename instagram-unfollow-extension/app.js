@@ -11,6 +11,8 @@
       allFollowers: [], // usernames
       allFollowing: [], // objects {username, fullName}
       unreciprocalUsers: [], // objects de não-seguidores
+      mutualUsers: [], // objects de seguidores mútuos
+      activeListType: "nonfollowers", // tipo de lista ativa
       currentIndex: 0,
       activeUser: null, // usuário sendo exibido
       unfollowQueue: [], // usernames/IDs na fila de unfollow
@@ -51,6 +53,16 @@
     fileConnections: document.getElementById("file-connections"),
     jsonPaste: document.getElementById("json-paste"),
     btnProcessJson: document.getElementById("btn-process-json"),
+    
+    // Filtros Dinâmicos
+    btnFilterFollowing: document.getElementById("btn-filter-following"),
+    btnFilterFollowers: document.getElementById("btn-filter-followers"),
+    btnFilterMutuals: document.getElementById("btn-filter-mutuals"),
+    btnFilterNonfollowers: document.getElementById("btn-filter-nonfollowers"),
+    badgeFollowingCount: document.getElementById("badge-following-count"),
+    badgeFollowersCount: document.getElementById("badge-followers-count"),
+    badgeMutualsCount: document.getElementById("badge-mutuals-count"),
+    badgeNonfollowersCount: document.getElementById("badge-nonfollowers-count"),
     
     // Tinder Arena
     tinderCard: document.getElementById("tinder-card"),
@@ -189,6 +201,11 @@
     elements.btnProcessJson.addEventListener("click", processJsonInput);
     elements.btnRestartTinder.addEventListener("click", restartTinder);
     
+    elements.btnFilterFollowing.addEventListener("click", () => selectTinderFilter("following"));
+    elements.btnFilterFollowers.addEventListener("click", () => selectTinderFilter("followers"));
+    elements.btnFilterMutuals.addEventListener("click", () => selectTinderFilter("mutuals"));
+    elements.btnFilterNonfollowers.addEventListener("click", () => selectTinderFilter("nonfollowers"));
+    
     elements.btnActionUnfollow.addEventListener("click", () => handleTinderDecision("unfollow"));
     elements.btnActionSkip.addEventListener("click", () => handleTinderDecision("skip"));
     elements.btnActionKeep.addEventListener("click", () => handleTinderDecision("keep"));
@@ -324,13 +341,16 @@
 
       state.tinder.allFollowing = following;
 
-      // Calcular reciprocidade
-      const followersSet = new Set(followers);
-      state.tinder.unreciprocalUsers = following.filter(user => !followersSet.has(user.username));
+      // Calcular reciprocidade normalizando para minúsculas
+      const followersSet = new Set(followers.map(u => u.toLowerCase()));
+      state.tinder.unreciprocalUsers = following.filter(user => !followersSet.has(user.username.toLowerCase()));
+      state.tinder.mutualUsers = following.filter(user => followersSet.has(user.username.toLowerCase()));
+
+      state.tinder.activeListType = "nonfollowers";
+      updateTinderFilterUI();
 
       if (state.tinder.unreciprocalUsers.length === 0) {
         alert("Excelente notícia! Todos os perfis que você segue também te seguem de volta.");
-        return;
       }
 
       // Iniciar o Tinder
@@ -413,16 +433,19 @@
       state.tinder.allFollowers = followersList;
       state.tinder.allFollowing = followingList.map(u => ({ username: u, fullName: "" }));
 
-      // Calcular reciprocidade
-      const followersSet = new Set(followersList);
-      state.tinder.unreciprocalUsers = state.tinder.allFollowing.filter(user => !followersSet.has(user.username));
+      // Calcular reciprocidade normalizando para minúsculas
+      const followersSet = new Set(followersList.map(u => u.toLowerCase()));
+      state.tinder.unreciprocalUsers = state.tinder.allFollowing.filter(user => !followersSet.has(user.username.toLowerCase()));
+      state.tinder.mutualUsers = state.tinder.allFollowing.filter(user => followersSet.has(user.username.toLowerCase()));
 
       elements.tinderAutoLoading.style.display = "none";
       elements.btnAutoImportTinder.style.display = "flex";
 
+      state.tinder.activeListType = "nonfollowers";
+      updateTinderFilterUI();
+
       if (state.tinder.unreciprocalUsers.length === 0) {
         alert("Excelente notícia! Todos os perfis que você segue também te seguem de volta.");
-        return;
       }
 
       // Iniciar o Tinder
@@ -444,7 +467,17 @@
   // LOGICA DO TINDER CARD (EXIBIÇÃO E GESTOS)
   // ==========================================
   async function showNextCard() {
-    const list = state.tinder.unreciprocalUsers;
+    let list = [];
+    if (state.tinder.activeListType === "following") {
+      list = state.tinder.allFollowing;
+    } else if (state.tinder.activeListType === "followers") {
+      list = state.tinder.allFollowers.map(u => ({ username: u, fullName: "" }));
+    } else if (state.tinder.activeListType === "mutuals") {
+      list = state.tinder.mutualUsers;
+    } else {
+      list = state.tinder.unreciprocalUsers;
+    }
+
     const index = state.tinder.currentIndex;
 
     if (index >= list.length) {
@@ -461,9 +494,35 @@
     state.tinder.activeUser = user;
 
     elements.cardUsername.textContent = `@${user.username}`;
-    elements.cardFullname.textContent = user.fullName ? "Carregando perfil..." : "Não te segue de volta";
+    elements.cardFullname.textContent = user.fullName || "Carregando perfil...";
     elements.deckCounter.textContent = `Cartão ${index + 1} de ${list.length}`;
     elements.cardProfileLink.href = `https://www.instagram.com/${user.username}/`;
+
+    // Atualiza o selo de reciprocidade visualmente
+    const reciprocityEl = document.getElementById("deck-reciprocity");
+    if (reciprocityEl) {
+      if (state.tinder.activeListType === "nonfollowers") {
+        reciprocityEl.textContent = "Não te segue de volta";
+        reciprocityEl.style.background = "rgba(239, 68, 68, 0.08)";
+        reciprocityEl.style.color = "var(--red)";
+        reciprocityEl.style.borderColor = "rgba(239, 68, 68, 0.15)";
+      } else if (state.tinder.activeListType === "mutuals") {
+        reciprocityEl.textContent = "Seguidor Mútuo";
+        reciprocityEl.style.background = "rgba(16, 185, 129, 0.08)";
+        reciprocityEl.style.color = "var(--green)";
+        reciprocityEl.style.borderColor = "rgba(16, 185, 129, 0.15)";
+      } else if (state.tinder.activeListType === "followers") {
+        reciprocityEl.textContent = "Te Segue";
+        reciprocityEl.style.background = "rgba(124, 58, 237, 0.08)";
+        reciprocityEl.style.color = "var(--secondary)";
+        reciprocityEl.style.borderColor = "rgba(124, 58, 237, 0.15)";
+      } else {
+        reciprocityEl.textContent = "Você Segue";
+        reciprocityEl.style.background = "var(--bg-glass)";
+        reciprocityEl.style.color = "var(--text-muted)";
+        reciprocityEl.style.borderColor = "var(--border)";
+      }
+    }
 
     // LAZY LOAD: Carrega Foto de perfil apenas para o cartão ativo!
     elements.cardUserPhoto.style.display = "none";
@@ -482,7 +541,7 @@
         elements.cardUserPhoto.style.display = "block";
         if (spinner) spinner.style.display = "none";
         
-        elements.cardFullname.textContent = profileData.full_name || "Não te segue de volta";
+        elements.cardFullname.textContent = profileData.full_name || "Sem nome no Instagram";
         user.userId = profileData.id;
       } else {
         useFallbackAvatar(spinner);
@@ -726,6 +785,82 @@
     state.tinder.currentIndex = 0;
     elements.deckEmpty.style.display = "none";
     showNextCard();
+  }
+
+  function selectTinderFilter(filterType) {
+    state.tinder.activeListType = filterType;
+    state.tinder.currentIndex = 0;
+    elements.deckEmpty.style.display = "none";
+
+    // Atualiza classes ativas nos botões
+    const buttons = [
+      { type: "following", el: elements.btnFilterFollowing },
+      { type: "followers", el: elements.btnFilterFollowers },
+      { type: "mutuals", el: elements.btnFilterMutuals },
+      { type: "nonfollowers", el: elements.btnFilterNonfollowers }
+    ];
+
+    buttons.forEach(btn => {
+      if (btn.type === filterType) {
+        btn.el.classList.add("active");
+        btn.el.style.borderColor = "var(--primary)";
+        btn.el.style.color = "var(--primary)";
+        const badge = btn.el.querySelector(".badge-count");
+        if (badge) {
+          badge.style.background = "var(--primary)";
+          badge.style.color = "white";
+        }
+      } else {
+        btn.el.classList.remove("active");
+        btn.el.style.borderColor = "";
+        btn.el.style.color = "";
+        const badge = btn.el.querySelector(".badge-count");
+        if (badge) {
+          badge.style.background = "";
+          badge.style.color = "";
+        }
+      }
+    });
+
+    showNextCard();
+  }
+
+  function updateTinderFilterUI() {
+    elements.badgeFollowingCount.textContent = state.tinder.allFollowing.length;
+    elements.badgeFollowersCount.textContent = state.tinder.allFollowers.length;
+    elements.badgeMutualsCount.textContent = state.tinder.mutualUsers.length;
+    elements.badgeNonfollowersCount.textContent = state.tinder.unreciprocalUsers.length;
+
+    // Garante que o botão ativo atual está visualmente correto
+    const type = state.tinder.activeListType;
+    const buttons = [
+      { type: "following", el: elements.btnFilterFollowing },
+      { type: "followers", el: elements.btnFilterFollowers },
+      { type: "mutuals", el: elements.btnFilterMutuals },
+      { type: "nonfollowers", el: elements.btnFilterNonfollowers }
+    ];
+
+    buttons.forEach(btn => {
+      if (btn.type === type) {
+        btn.el.classList.add("active");
+        btn.el.style.borderColor = "var(--primary)";
+        btn.el.style.color = "var(--primary)";
+        const badge = btn.el.querySelector(".badge-count");
+        if (badge) {
+          badge.style.background = "var(--primary)";
+          badge.style.color = "white";
+        }
+      } else {
+        btn.el.classList.remove("active");
+        btn.el.style.borderColor = "";
+        btn.el.style.color = "";
+        const badge = btn.el.querySelector(".badge-count");
+        if (badge) {
+          badge.style.background = "";
+          badge.style.color = "";
+        }
+      }
+    });
   }
 
   // ==========================================

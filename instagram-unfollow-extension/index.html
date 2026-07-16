@@ -113,6 +113,27 @@
 
             <!-- Passo 2: O Tinder Deck -->
             <div id="tinder-deck-container" class="deck-container" style="display: none;">
+              
+              <!-- Menu de Filtros Dinâmicos -->
+              <div class="tinder-filter-menu" style="display: flex; gap: 8px; width: 100%; max-width: 480px; margin-bottom: 16px;">
+                <button id="btn-filter-following" class="btn btn-secondary filter-btn" style="flex: 1; padding: 8px 4px; font-size: 0.78rem;">
+                  <div>Seguindo</div>
+                  <span id="badge-following-count" class="badge-count">0</span>
+                </button>
+                <button id="btn-filter-followers" class="btn btn-secondary filter-btn" style="flex: 1; padding: 8px 4px; font-size: 0.78rem;">
+                  <div>Seguidores</div>
+                  <span id="badge-followers-count" class="badge-count">0</span>
+                </button>
+                <button id="btn-filter-mutuals" class="btn btn-secondary filter-btn" style="flex: 1; padding: 8px 4px; font-size: 0.78rem;">
+                  <div>Mútuos</div>
+                  <span id="badge-mutuals-count" class="badge-count">0</span>
+                </button>
+                <button id="btn-filter-nonfollowers" class="btn btn-secondary filter-btn active" style="flex: 1; padding: 8px 4px; font-size: 0.78rem; border-color: var(--primary); color: var(--primary);">
+                  <div>Não Seguem</div>
+                  <span id="badge-nonfollowers-count" class="badge-count" style="background: var(--primary); color: white;">0</span>
+                </button>
+              </div>
+
               <div class="deck-stats">
                 <span id="deck-counter">Cartão 0 de 0</span>
                 <span id="deck-reciprocity" class="badge">Não te segue de volta</span>
