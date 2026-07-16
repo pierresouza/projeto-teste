@@ -80,7 +80,7 @@ instagram-unfollow/
 - [x] Implementar a leitura automática de cookies usando a API `chrome.cookies` no `page.jsx` do Instagram [Feito]
 - [x] Implementar a leitura automática de cookies usando a API `chrome.cookies` no `page.jsx` do Twitter [Feito]
 - [x] Validar compilação estática (`npm run build`) gerando a pasta `out/` com manifesto e service worker [Feito]
-- [ ] Carregar a pasta compilada `out/` no Chrome e verificar a detecção automática de sessão [Em Dev]
+- [x] Carregar a pasta compilada `out/` no Chrome e verificar a detecção automática de sessão [Feito]
 
 
 

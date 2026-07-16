@@ -3,52 +3,250 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Instagram Session Detector</title>
+  <title>Instagram Unfollow Manager</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <section class="upload-container" style="max-width: 480px; margin: 80px auto; text-align: center;">
-    <h1 class="upload-title">Instagram Session</h1>
-    <p class="upload-subtitle" style="margin-bottom: 24px;">Verificação de autenticação ativa</p>
-
-    <!-- Verificando -->
-    <div id="session-checking" class="auto-extract-box" style="background: var(--bg-glass);">
-      <div class="auto-extract-title" style="color: var(--text-muted);">Verificando conexão...</div>
-      <p class="auto-extract-desc">Consultando a sessão ativa no navegador Chrome...</p>
-    </div>
-
-    <!-- Sessão Ativa -->
-    <div id="session-active" class="auto-extract-box" style="display: none; background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
-      <h2 class="auto-extract-title" style="color: #10B981; display: flex; align-items: center; justify-content: center; gap: 8px;">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        Sessão Conectada!
-      </h2>
-      <p class="auto-extract-desc" style="margin-top: 12px;">
-        Identificamos que você está autenticado com sucesso no **Instagram Web**.
-      </p>
-      <div id="user-details" style="font-family: monospace; font-size: 0.9rem; color: var(--text-muted); background: var(--bg-glass); padding: 8px 12px; border-radius: var(--radius-sm); margin-top: 16px; word-break: break-all;">
-        ID de Usuário: ...
+  <div class="extension-container">
+    <!-- Header Fixo -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-logo">I</div>
+        <span class="brand-name">InstaSuite Manager — Painel Unificado</span>
       </div>
-      <a href="https://www.instagram.com" target="_blank" class="action-btn-main" style="display: inline-block; width: auto; padding: 12px 24px; font-size: 0.95rem; margin-top: 20px;">Ir para o Instagram</a>
-    </div>
+    </header>
 
-    <!-- Sessão Ausente -->
-    <div id="session-inactive" class="auto-extract-box" style="display: none; background: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.2);">
-      <h2 class="auto-extract-title" style="color: #EF4444; display: flex; align-items: center; justify-content: center; gap: 8px;">
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-        Sessão Desconectada
-      </h2>
-      <p class="auto-extract-desc" style="margin-top: 12px;">
-        Não identificamos nenhuma sessão ativa do Instagram neste navegador.
-      </p>
-      <a href="https://www.instagram.com" target="_blank" class="action-btn-main" style="display: inline-block; width: auto; padding: 12px 24px; font-size: 0.95rem; background: linear-gradient(135deg, #EF4444, #DC2626); box-shadow: 0 4px 14px rgba(239, 68, 68, 0.2); margin-top: 20px;">Fazer Login</a>
-    </div>
-  </section>
+    <!-- Conteúdo Único Vertical Scrollável -->
+    <main class="app-content">
+      
+      <!-- SEÇÃO 1: Sessão (Login) -->
+      <section class="dashboard-section" id="sec-session">
+        <!-- Estado de Verificação -->
+        <div id="session-checking" class="status-card">
+          <div class="spinner"></div>
+          <h3>Verificando sessão...</h3>
+          <p>Consultando conexão ativa com o Instagram Web.</p>
+        </div>
+
+        <!-- Sessão Ativa -->
+        <div id="session-active" class="status-card success" style="display: none;">
+          <div class="status-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3>Sessão Conectada</h3>
+          <p>Você está autenticado no <strong>Instagram Web</strong> de forma nativa e segura.</p>
+          <div id="user-details" class="user-badge">ID: ...</div>
+          <div class="session-actions">
+            <button id="btn-detect-again" class="btn btn-secondary">Detectar Novamente</button>
+            <a href="https://www.instagram.com" target="_blank" class="btn btn-primary">Acessar Instagram</a>
+          </div>
+        </div>
+
+        <!-- Sessão Inativa -->
+        <div id="session-inactive" class="status-card error" style="display: none;">
+          <div class="status-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h3>Sessão Desconectada</h3>
+          <p>Nenhuma sessão ativa do Instagram foi detectada neste navegador.</p>
+          <div class="session-actions">
+            <button id="btn-detect-login" class="btn btn-secondary">Detectar Login</button>
+            <a href="https://www.instagram.com" target="_blank" class="btn btn-primary bg-red">Fazer Login no Instagram</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEÇÃO 2: Tinder Unfollow -->
+      <section class="dashboard-section" id="sec-tinder">
+        <div class="section-header">
+          <h2>Tinder Unfollow (Reciprocidade)</h2>
+          <p>Importe suas conexões para arrastar e decidir quem deixar de seguir com intervalo de segurança.</p>
+        </div>
+
+        <!-- Bloqueio de Sessão Inativa -->
+        <div class="session-blocker" style="display: none;">
+          <p>Conecte sua conta do Instagram na seção <strong>Sessão</strong> acima para liberar esta ferramenta.</p>
+        </div>
+
+        <div class="section-body">
+          <div class="tinder-layout">
+            <!-- Passo 1: Upload do JSON de conexões -->
+            <div id="tinder-setup" class="setup-container">
+              <h3>Alimentar Lista de Seguidores</h3>
+              <p class="description">
+                Importe os dados de conexões diretamente da sua conta logada ou use arquivos JSON locais.
+              </p>
+
+              <!-- Importação Automática -->
+              <button id="btn-auto-import-tinder" class="btn btn-primary flex items-center justify-center gap-2">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span id="btn-auto-import-text">Importar Conexões Automaticamente</span>
+              </button>
+
+              <div id="tinder-auto-loading" class="spinner-container" style="display: none; margin-top: 12px; margin-bottom: 12px;">
+                <div class="spinner"></div>
+                <p id="tinder-auto-status">Iniciando coleta automática...</p>
+              </div>
+
+              <div class="divider">ou use arquivos JSON locais</div>
+              
+              <div class="upload-zone" id="upload-zone">
+                <input type="file" id="file-connections" accept=".json" style="display: none;">
+                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="upload-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span>Arraste ou clique para carregar <strong>connections.json</strong> ou <strong>following.json</strong></span>
+              </div>
+
+              <div class="divider">ou cole o conteúdo JSON</div>
+              <textarea id="json-paste" placeholder='{"relationships_followers": [...], "relationships_following": [...]} ou arquivo arrays...'></textarea>
+              
+              <button id="btn-process-json" class="btn btn-secondary">Processar Conexões Manuais</button>
+            </div>
+
+            <!-- Passo 2: O Tinder Deck -->
+            <div id="tinder-deck-container" class="deck-container" style="display: none;">
+              <div class="deck-stats">
+                <span id="deck-counter">Cartão 0 de 0</span>
+                <span id="deck-reciprocity" class="badge">Não te segue de volta</span>
+              </div>
+
+              <!-- Área de Cartões do Tinder -->
+              <div class="card-arena">
+                <div id="tinder-card" class="tinder-card">
+                  <!-- Foto carregada em Lazy Load sob demanda -->
+                  <div class="card-photo-container">
+                    <div class="card-photo-spinner"></div>
+                    <img id="card-user-photo" src="" alt="Foto de perfil" style="display: none;">
+                    <div class="card-stamp stamp-keep">MANTER</div>
+                    <div class="card-stamp stamp-unfollow">UNFOLLOW</div>
+                  </div>
+                  <div class="card-info">
+                    <h4 id="card-username">username</h4>
+                    <p id="card-fullname">Nome Completo</p>
+                  </div>
+                </div>
+
+                <!-- Estado de Fim da Fila -->
+                <div class="deck-empty" id="deck-empty" style="display: none;">
+                  <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="text-green">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <h3>Lista Concluída!</h3>
+                  <p>Você revisou todos os perfis selecionados.</p>
+                  <button id="btn-restart-tinder" class="btn btn-secondary margin-top">Recarregar Lista</button>
+                </div>
+              </div>
+
+              <!-- Botões de Ação na Tela -->
+              <div class="tinder-controls">
+                <button id="btn-action-unfollow" class="ctrl-btn btn-unfollow" title="Deixar de seguir (Seta Esquerda)">
+                  <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <button id="btn-action-skip" class="ctrl-btn btn-skip" title="Pular (Barra de Espaço)">
+                  PULAR
+                </button>
+                <button id="btn-action-keep" class="ctrl-btn btn-keep" title="Manter (Seta Direita)">
+                  <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Atalhos de Teclado Instrução -->
+              <div class="keyboard-tips">
+                <span>← Deseguir</span>
+                <span>[Espaço] Pular</span>
+                <span>Seguir →</span>
+              </div>
+
+              <!-- Barra de Progresso de Fila de Ação de Unfollow em Background -->
+              <div id="unfollow-queue-progress" class="queue-progress" style="display: none;">
+                <div class="queue-text">Processando deseguir em background: <strong id="queue-status">0 de 0</strong></div>
+                <div class="progress-bar-container">
+                  <div id="queue-bar" class="progress-bar" style="width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEÇÃO 3: Publicações (Deletar Posts) -->
+      <section class="dashboard-section" id="sec-posts">
+        <div class="section-header">
+          <h2>Gerenciamento de Publicações</h2>
+          <p>Exiba seu feed de mídias para selecionar e deletar fotos ou vídeos publicados.</p>
+        </div>
+
+        <!-- Bloqueio de Sessão Inativa -->
+        <div class="session-blocker" style="display: none;">
+          <p>Conecte sua conta do Instagram na seção <strong>Sessão</strong> acima para liberar esta ferramenta.</p>
+        </div>
+
+        <div class="section-body">
+          <div class="posts-layout">
+            <!-- Botão Inicial de Busca -->
+            <div id="posts-setup" class="setup-container">
+              <h3>Buscar Suas Publicações</h3>
+              <p class="description">
+                Listaremos suas fotos e vídeos recentes publicados no Instagram para que você selecione e apague de forma simples.
+              </p>
+              <button id="btn-fetch-posts" class="btn btn-primary">Buscar Mídias Recentes</button>
+              <div id="posts-fetch-loading" class="spinner-container" style="display: none; margin-top: 16px;">
+                <div class="spinner"></div>
+                <p>Consultando perfil no Instagram...</p>
+              </div>
+            </div>
+
+            <!-- Grade de Publicações com Controles -->
+            <div id="posts-grid-container" class="grid-container" style="display: none;">
+              <div class="grid-header">
+                <span id="posts-counter">0 publicações encontradas</span>
+                <div class="grid-selection-actions">
+                  <button id="btn-select-all-posts" class="btn-text">Selecionar Todos</button>
+                  <button id="btn-deselect-all-posts" class="btn-text">Limpar</button>
+                </div>
+              </div>
+
+              <!-- Grade Grid de Mídias -->
+              <div id="posts-grid" class="posts-grid">
+                <!-- Cards dinâmicos inseridos aqui -->
+              </div>
+
+              <!-- Ações de Lote -->
+              <div class="grid-footer">
+                <button id="btn-delete-selected-posts" class="btn btn-primary bg-red w-full flex items-center justify-center gap-2">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Apagar Publicações Selecionadas (<span id="delete-selected-count">0</span>)
+                </button>
+              </div>
+
+              <!-- Progresso de Exclusão -->
+              <div id="delete-queue-progress" class="queue-progress" style="display: none; margin-top: 16px;">
+                <div class="queue-text">Apagando publicações em background: <strong id="delete-queue-status">0 de 0</strong></div>
+                <div class="progress-bar-container">
+                  <div id="delete-queue-bar" class="progress-bar" style="width: 0%; background: #EF4444;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
 
   <script src="app.js"></script>
 </body>
