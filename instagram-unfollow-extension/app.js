@@ -21,6 +21,12 @@
       selectedIds: new Set(),
       deleteQueue: [],
       isProcessingDelete: false
+    },
+    reposts: {
+      allItems: [], // republicações carregadas
+      selectedIds: new Set(),
+      deleteQueue: [],
+      isProcessingDelete: false
     }
   };
 
@@ -51,6 +57,7 @@
     cardUserPhoto: document.getElementById("card-user-photo"),
     cardUsername: document.getElementById("card-username"),
     cardFullname: document.getElementById("card-fullname"),
+    cardProfileLink: document.getElementById("card-profile-link"),
     deckCounter: document.getElementById("deck-counter"),
     deckEmpty: document.getElementById("deck-empty"),
     btnRestartTinder: document.getElementById("btn-restart-tinder"),
@@ -80,7 +87,23 @@
     deleteSelectedCount: document.getElementById("delete-selected-count"),
     deleteQueueProgress: document.getElementById("delete-queue-progress"),
     deleteQueueStatus: document.getElementById("delete-queue-status"),
-    deleteQueueBar: document.getElementById("delete-queue-bar")
+    deleteQueueBar: document.getElementById("delete-queue-bar"),
+    
+    // SEÇÃO 4: Republicações
+    repostsSetup: document.getElementById("reposts-setup"),
+    repostsGridContainer: document.getElementById("reposts-grid-container"),
+    btnFetchReposts: document.getElementById("btn-fetch-reposts"),
+    repostsFetchLoading: document.getElementById("reposts-fetch-loading"),
+    repostsCounter: document.getElementById("reposts-counter"),
+    repostsGrid: document.getElementById("reposts-grid"),
+    btnSelectAllReposts: document.getElementById("btn-select-all-reposts"),
+    btnDeselectAllReposts: document.getElementById("btn-deselect-all-reposts"),
+    btnDeleteSelectedReposts: document.getElementById("btn-delete-selected-reposts"),
+    deleteRepostsSelectedCount: document.getElementById("delete-reposts-selected-count"),
+    repostsQueueProgress: document.getElementById("reposts-queue-progress"),
+    repostsQueueStatus: document.getElementById("reposts-queue-status"),
+    repostsTimeEst: document.getElementById("reposts-time-est"),
+    repostsQueueBar: document.getElementById("reposts-queue-bar")
   };
 
   // Inicialização
@@ -175,6 +198,12 @@
     elements.btnSelectAllPosts.addEventListener("click", selectAllPosts);
     elements.btnDeselectAllPosts.addEventListener("click", deselectAllPosts);
     elements.btnDeleteSelectedPosts.addEventListener("click", startDeleteQueue);
+
+    // Reposts
+    elements.btnFetchReposts.addEventListener("click", fetchUserReposts);
+    elements.btnSelectAllReposts.addEventListener("click", selectAllReposts);
+    elements.btnDeselectAllReposts.addEventListener("click", deselectAllReposts);
+    elements.btnDeleteSelectedReposts.addEventListener("click", startRepostDeleteQueue);
   }
 
   // ==========================================
@@ -434,6 +463,7 @@
     elements.cardUsername.textContent = `@${user.username}`;
     elements.cardFullname.textContent = user.fullName ? "Carregando perfil..." : "Não te segue de volta";
     elements.deckCounter.textContent = `Cartão ${index + 1} de ${list.length}`;
+    elements.cardProfileLink.href = `https://www.instagram.com/${user.username}/`;
 
     // LAZY LOAD: Carrega Foto de perfil apenas para o cartão ativo!
     elements.cardUserPhoto.style.display = "none";
@@ -890,6 +920,241 @@
       return json.status === "ok";
     }
     return false;
+  }
+
+  // ==========================================
+  // SEÇÃO 4: GERENCIAR REPUBLICAÇÕES (REPOSTS)
+  // ==========================================
+  async function fetchUserReposts() {
+    elements.repostsSetup.style.display = "none";
+    elements.repostsFetchLoading.style.display = "flex";
+    
+    const tryFetch = async (url) => {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "X-IG-App-ID": "936619743392459"
+        }
+      });
+      if (!response.ok) throw new Error("Erro na rede");
+      return await response.json();
+    };
+
+    try {
+      let data;
+      try {
+        // Tenta o endpoint primário de reposted_media
+        const url1 = `https://www.instagram.com/api/v1/feed/user/${state.session.userId}/reposted_media/`;
+        data = await tryFetch(url1);
+      } catch (err) {
+        console.warn("Falha no endpoint primário de reposts, tentando fallback...", err);
+        // Fallback: tenta o endpoint alternativo reposts
+        const url2 = `https://www.instagram.com/api/v1/feed/user/${state.session.userId}/reposts/`;
+        data = await tryFetch(url2);
+      }
+
+      const items = data.items || data.reposted_media || data.reposts || [];
+      state.reposts.allItems = items;
+      state.reposts.selectedIds.clear();
+
+      renderRepostsGrid();
+      
+      elements.repostsFetchLoading.style.display = "none";
+      elements.repostsGridContainer.style.display = "block";
+      elements.repostsCounter.textContent = `${items.length} republicações encontradas`;
+      elements.deleteRepostsSelectedCount.textContent = "0";
+
+    } catch (e) {
+      alert("Erro ao buscar republicações: " + e.message);
+      elements.repostsSetup.style.display = "flex";
+      elements.repostsFetchLoading.style.display = "none";
+    }
+  }
+
+  function renderRepostsGrid() {
+    elements.repostsGrid.innerHTML = "";
+    
+    state.reposts.allItems.forEach(item => {
+      // O post republicado pode conter os dados do post original em uma sub-chave 'reposted_post' ou no próprio root
+      const media = item.reposted_post || item;
+      const picUrl = media.image_versions2?.candidates?.[0]?.url || media.carousel_media?.[0]?.image_versions2?.candidates?.[0]?.url || "";
+      if (!picUrl) return;
+
+      const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(picUrl)}&w=150&h=150&fit=cover`;
+
+      const card = document.createElement("div");
+      card.className = "post-card";
+      card.dataset.id = item.id; // ID do repost para desfazer
+
+      card.innerHTML = `
+        <img class="post-thumbnail" src="${proxyUrl}" alt="Repost Feed">
+        <div class="post-checkbox-wrapper">
+          <input type="checkbox">
+          <svg fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+          </svg>
+        </div>
+      `;
+
+      card.addEventListener("click", () => toggleRepostSelection(item.id, card));
+      elements.repostsGrid.appendChild(card);
+    });
+  }
+
+  function toggleRepostSelection(id, cardEl) {
+    const checkbox = cardEl.querySelector("input[type='checkbox']");
+    if (state.reposts.selectedIds.has(id)) {
+      state.reposts.selectedIds.delete(id);
+      cardEl.classList.remove("selected");
+      if (checkbox) checkbox.checked = false;
+    } else {
+      state.reposts.selectedIds.add(id);
+      cardEl.classList.add("selected");
+      if (checkbox) checkbox.checked = true;
+    }
+    elements.deleteRepostsSelectedCount.textContent = state.reposts.selectedIds.size;
+  }
+
+  function selectAllReposts() {
+    state.reposts.selectedIds.clear();
+    const cards = elements.repostsGrid.querySelectorAll(".post-card");
+    cards.forEach(card => {
+      const id = card.dataset.id;
+      state.reposts.selectedIds.add(id);
+      card.classList.add("selected");
+      const checkbox = card.querySelector("input[type='checkbox']");
+      if (checkbox) checkbox.checked = true;
+    });
+    elements.deleteRepostsSelectedCount.textContent = state.reposts.selectedIds.size;
+  }
+
+  function deselectAllReposts() {
+    state.reposts.selectedIds.clear();
+    const cards = elements.repostsGrid.querySelectorAll(".post-card");
+    cards.forEach(card => {
+      card.classList.remove("selected");
+      const checkbox = card.querySelector("input[type='checkbox']");
+      if (checkbox) checkbox.checked = false;
+    });
+    elements.deleteRepostsSelectedCount.textContent = "0";
+  }
+
+  function startRepostDeleteQueue() {
+    const list = Array.from(state.reposts.selectedIds);
+    if (list.length === 0) {
+      alert("Nenhuma republicação selecionada.");
+      return;
+    }
+
+    const confirmDelete = confirm(`Deseja apagar definitivamente as ${list.length} republicações selecionadas do seu Instagram? Esta ação é irreversível.`);
+    if (!confirmDelete) return;
+
+    state.reposts.deleteQueue = list;
+    elements.repostsQueueProgress.style.display = "block";
+    updateRepostDeleteQueueUI(list.length, list.length);
+    processRepostDeleteQueue(list.length);
+  }
+
+  function updateRepostDeleteQueueUI(remaining, total) {
+    const done = total - remaining;
+    const pct = total > 0 ? (done / total) * 100 : 0;
+    
+    // Atualiza progresso textual
+    elements.repostsQueueStatus.textContent = `${done} de ${total} excluído(s)`;
+    elements.repostsQueueBar.style.width = `${pct}%`;
+
+    // Atualiza o tempo estimado restante (5 segundos por item)
+    const timeEstSeconds = remaining * 5;
+    if (timeEstSeconds <= 0) {
+      elements.repostsTimeEst.textContent = "Finalizando...";
+    } else if (timeEstSeconds >= 60) {
+      const mins = Math.floor(timeEstSeconds / 60);
+      const secs = timeEstSeconds % 60;
+      elements.repostsTimeEst.textContent = `${mins}m ${secs}s`;
+    } else {
+      elements.repostsTimeEst.textContent = `${timeEstSeconds}s`;
+    }
+  }
+
+  async function processRepostDeleteQueue(totalItems) {
+    if (state.reposts.isProcessingDelete || state.reposts.deleteQueue.length === 0) {
+      if (state.reposts.deleteQueue.length === 0) {
+        setTimeout(() => {
+          elements.repostsQueueProgress.style.display = "none";
+          alert("Republicações desfeitas com sucesso!");
+          fetchUserReposts(); // recarrega grid
+        }, 1500);
+      }
+      return;
+    }
+
+    state.reposts.isProcessingDelete = true;
+    const mediaId = state.reposts.deleteQueue[0];
+    
+    try {
+      const success = await sendInstagramUnrepostRequest(mediaId);
+      if (success) {
+        console.log(`[Reposts] Republicação ${mediaId} desfeita.`);
+      } else {
+        console.error(`[Reposts] Falha ao desfazer republicação ${mediaId}`);
+      }
+    } catch (e) {
+      console.error(`[Reposts] Erro na fila ao desfazer ${mediaId}:`, e);
+    }
+
+    state.reposts.deleteQueue.shift();
+    updateRepostDeleteQueueUI(state.reposts.deleteQueue.length, totalItems);
+
+    // Timeout solicitado de 5 segundos de intervalo entre desfazimento de reposts
+    const delay = 5000;
+    
+    setTimeout(() => {
+      state.reposts.isProcessingDelete = false;
+      processRepostDeleteQueue(totalItems);
+    }, delay);
+  }
+
+  async function sendInstagramUnrepostRequest(mediaId) {
+    // Rota primária para desfazer repost
+    const url1 = `https://www.instagram.com/api/v1/repost/undo/`;
+    
+    const headers = {
+      "X-IG-App-ID": "936619743392459",
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Accept": "*/*"
+    };
+
+    if (state.session.csrfToken) {
+      headers["X-CSRFToken"] = state.session.csrfToken;
+    }
+
+    const tryRequest = async (url) => {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: headers,
+        body: new URLSearchParams({
+          media_id: mediaId
+        })
+      });
+      if (response.ok) {
+        const json = await response.json();
+        return json.status === "ok";
+      }
+      return false;
+    };
+
+    try {
+      const ok = await tryRequest(url1);
+      if (ok) return true;
+      
+      // Fallback: rota secundária se a primeira falhar
+      console.warn("Rota primária falhou, tentando fallback de undo_repost...");
+      const url2 = `https://www.instagram.com/api/v1/media/${mediaId}/undo_repost/`;
+      return await tryRequest(url2);
+    } catch (e) {
+      console.error("Erro na request de undo repost:", e);
+      return false;
+    }
   }
 
 })();
