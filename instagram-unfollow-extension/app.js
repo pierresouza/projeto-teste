@@ -1064,31 +1064,43 @@
     elements.repostsSetup.style.display = "none";
     elements.repostsFetchLoading.style.display = "flex";
     
-    const tryFetch = async (url) => {
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "X-IG-App-ID": "936619743392459"
-        }
-      });
-      if (!response.ok) throw new Error("Erro na rede");
-      return await response.json();
-    };
-
     try {
-      let data;
-      try {
-        // Tenta o endpoint primário de reposted_media
-        const url1 = `https://www.instagram.com/api/v1/feed/user/${state.session.userId}/reposted_media/`;
-        data = await tryFetch(url1);
-      } catch (err) {
-        console.warn("Falha no endpoint primário de reposts, tentando fallback...", err);
-        // Fallback: tenta o endpoint alternativo reposts
-        const url2 = `https://www.instagram.com/api/v1/feed/user/${state.session.userId}/reposts/`;
-        data = await tryFetch(url2);
+      console.log("[Reposts Debug] Iniciando busca via GraphQL POST...");
+      console.log("[Reposts Debug] UserId:", state.session.userId);
+      console.log("[Reposts Debug] CSRFToken presente:", !!state.session.csrfToken);
+
+      const url = "https://www.instagram.com/graphql/query";
+      const body = new URLSearchParams();
+      body.append("doc_id", "27361335096852028");
+      body.append("variables", JSON.stringify({ user_id: state.session.userId }));
+
+      const headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-IG-App-ID": "936619743392459",
+        "Accept": "*/*"
+      };
+      if (state.session.csrfToken) {
+        headers["X-CSRFToken"] = state.session.csrfToken;
       }
 
-      const items = data.items || data.reposted_media || data.reposts || [];
+      const response = await fetch(url, {
+        method: "POST",
+        headers: headers,
+        body: body
+      });
+
+      let items = [];
+      if (response.ok) {
+        const json = await response.json();
+        // A chave no GraphQL do Instagram Web contém dois underlines: 'fetch__XDTUserDict'
+        const timeline = json.data?.fetch__XDTUserDict?.user_reposts_timeline;
+        if (timeline) {
+          items = timeline.repost_grid_items || [];
+        }
+      } else {
+        console.warn(`[Reposts] A chamada de GraphQL respondeu com status ${response.status}.`);
+      }
+
       state.reposts.allItems = items;
       state.reposts.selectedIds.clear();
 
@@ -1099,19 +1111,34 @@
       elements.repostsCounter.textContent = `${items.length} republicações encontradas`;
       elements.deleteRepostsSelectedCount.textContent = "0";
 
+      if (items.length === 0) {
+        elements.repostsGrid.innerHTML = `
+          <div style="grid-column: span 3; text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 0.88rem;">
+            Nenhuma republicação ativa encontrada no seu perfil do Instagram.
+          </div>
+        `;
+      }
+
     } catch (e) {
-      alert("Erro ao buscar republicações: " + e.message);
-      elements.repostsSetup.style.display = "flex";
+      console.error("Erro ao buscar reposts via GraphQL:", e);
       elements.repostsFetchLoading.style.display = "none";
+      elements.repostsGridContainer.style.display = "block";
+      elements.repostsCounter.textContent = "0 republicações encontradas";
+      elements.repostsGrid.innerHTML = `
+        <div style="grid-column: span 3; text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 0.88rem;">
+          Não foi possível carregar as republicações do perfil.
+        </div>
+      `;
     }
   }
 
   function renderRepostsGrid() {
     elements.repostsGrid.innerHTML = "";
     
-    state.reposts.allItems.forEach(item => {
-      // O post republicado pode conter os dados do post original em uma sub-chave 'reposted_post' ou no próprio root
-      const media = item.reposted_post || item;
+    state.reposts.allItems.forEach(gridItem => {
+      const media = gridItem.media;
+      if (!media) return;
+
       const picUrl = media.image_versions2?.candidates?.[0]?.url || media.carousel_media?.[0]?.image_versions2?.candidates?.[0]?.url || "";
       if (!picUrl) return;
 
@@ -1119,7 +1146,7 @@
 
       const card = document.createElement("div");
       card.className = "post-card";
-      card.dataset.id = item.id; // ID do repost para desfazer
+      card.dataset.id = media.id; // Mapeia o ID completo da midia
 
       card.innerHTML = `
         <img class="post-thumbnail" src="${proxyUrl}" alt="Repost Feed">
@@ -1131,7 +1158,7 @@
         </div>
       `;
 
-      card.addEventListener("click", () => toggleRepostSelection(item.id, card));
+      card.addEventListener("click", () => toggleRepostSelection(media.id, card));
       elements.repostsGrid.appendChild(card);
     });
   }
