@@ -28,7 +28,10 @@
       allItems: [], // republicações carregadas
       selectedIds: new Set(),
       deleteQueue: [],
-      isProcessingDelete: false
+      isProcessingDelete: false,
+      hasNextPage: false,
+      endCursor: null,
+      isLoadingMore: false
     }
   };
 
@@ -108,6 +111,7 @@
     repostsFetchLoading: document.getElementById("reposts-fetch-loading"),
     repostsCounter: document.getElementById("reposts-counter"),
     repostsGrid: document.getElementById("reposts-grid"),
+    repostsLoadMoreSpinner: document.getElementById("reposts-load-more-spinner"),
     btnSelectAllReposts: document.getElementById("btn-select-all-reposts"),
     btnDeselectAllReposts: document.getElementById("btn-deselect-all-reposts"),
     btnDeleteSelectedReposts: document.getElementById("btn-delete-selected-reposts"),
@@ -1090,18 +1094,25 @@
       });
 
       let items = [];
+      let hasNextPage = false;
+      let endCursor = null;
+
       if (response.ok) {
         const json = await response.json();
         // A chave no GraphQL do Instagram Web contém dois underlines: 'fetch__XDTUserDict'
         const timeline = json.data?.fetch__XDTUserDict?.user_reposts_timeline;
         if (timeline) {
           items = timeline.repost_grid_items || [];
+          hasNextPage = timeline.page_info?.has_next_page || false;
+          endCursor = timeline.page_info?.end_cursor || null;
         }
       } else {
         console.warn(`[Reposts] A chamada de GraphQL respondeu com status ${response.status}.`);
       }
 
       state.reposts.allItems = items;
+      state.reposts.hasNextPage = hasNextPage;
+      state.reposts.endCursor = endCursor;
       state.reposts.selectedIds.clear();
 
       renderRepostsGrid();
@@ -1318,5 +1329,107 @@
       return false;
     }
   }
+
+  // ==========================================
+  // PAGINAÇÃO INFINITA DE REPOSTS (INFINITE SCROLL)
+  // ==========================================
+  async function fetchMoreUserReposts() {
+    if (state.reposts.isLoadingMore || !state.reposts.hasNextPage) return;
+    
+    state.reposts.isLoadingMore = true;
+    elements.repostsLoadMoreSpinner.style.display = "flex";
+
+    try {
+      const url = "https://www.instagram.com/graphql/query";
+      const body = new URLSearchParams();
+      body.append("doc_id", "27361335096852028");
+      body.append("variables", JSON.stringify({ 
+        user_id: state.session.userId,
+        after: state.reposts.endCursor,
+        first: 12
+      }));
+
+      const headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-IG-App-ID": "936619743392459",
+        "Accept": "*/*"
+      };
+      if (state.session.csrfToken) {
+        headers["X-CSRFToken"] = state.session.csrfToken;
+      }
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: headers,
+        body: body
+      });
+
+      if (response.ok) {
+        const json = await response.json();
+        const timeline = json.data?.fetch__XDTUserDict?.user_reposts_timeline;
+        if (timeline) {
+          const newItems = timeline.repost_grid_items || [];
+          state.reposts.allItems = state.reposts.allItems.concat(newItems);
+          state.reposts.hasNextPage = timeline.page_info?.has_next_page || false;
+          state.reposts.endCursor = timeline.page_info?.end_cursor || null;
+
+          renderMoreReposts(newItems);
+          elements.repostsCounter.textContent = `${state.reposts.allItems.length} republicações encontradas`;
+        }
+      } else {
+        console.warn(`[Reposts Pagination] GraphQL respondeu com status ${response.status}`);
+      }
+
+    } catch (e) {
+      console.error("[Reposts Pagination] Erro ao buscar mais reposts:", e);
+    } finally {
+      state.reposts.isLoadingMore = false;
+      elements.repostsLoadMoreSpinner.style.display = "none";
+    }
+  }
+
+  function renderMoreReposts(newItems) {
+    newItems.forEach(gridItem => {
+      const media = gridItem.media;
+      if (!media) return;
+
+      const picUrl = media.image_versions2?.candidates?.[0]?.url || media.carousel_media?.[0]?.image_versions2?.candidates?.[0]?.url || "";
+      if (!picUrl) return;
+
+      const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(picUrl)}&w=150&h=150&fit=cover`;
+
+      const card = document.createElement("div");
+      card.className = "post-card";
+      card.dataset.id = media.id;
+
+      card.innerHTML = `
+        <img class="post-thumbnail" src="${proxyUrl}" alt="Repost Feed">
+        <div class="post-checkbox-wrapper">
+          <input type="checkbox">
+          <svg fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+          </svg>
+        </div>
+      `;
+
+      card.addEventListener("click", () => toggleRepostSelection(media.id, card));
+      elements.repostsGrid.appendChild(card);
+    });
+  }
+
+  // Monitoramento de Scroll na Janela
+  window.addEventListener("scroll", () => {
+    const container = elements.repostsGridContainer;
+    if (container && container.style.display !== "none" && state.reposts.hasNextPage && !state.reposts.isLoadingMore) {
+      const threshold = 300; // pixels antes do final
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const clientHeight = window.innerHeight;
+
+      if (scrollTop + clientHeight >= scrollHeight - threshold) {
+        fetchMoreUserReposts();
+      }
+    }
+  });
 
 })();
